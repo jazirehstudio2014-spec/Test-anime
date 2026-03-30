@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Floating 3D Scene</title>
+  <title>Three Floating Scene</title>
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -12,75 +12,91 @@
       height: 100%;
       overflow: hidden;
       background: #000;
-      font-family: Arial, sans-serif;
+      font-family: Inter, Arial, sans-serif;
     }
     canvas { display: block; }
-    .info {
+
+    .hud {
       position: fixed;
       left: 16px;
       bottom: 16px;
-      color: rgba(255,255,255,0.75);
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.12);
+      z-index: 10;
       padding: 10px 14px;
       border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      color: rgba(255,255,255,0.74);
       font-size: 12px;
-      backdrop-filter: blur(8px);
+      letter-spacing: 0.03em;
+      user-select: none;
+      pointer-events: none;
     }
   </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 <body>
-  <div class="info">3D floating scene test</div>
+  <div class="hud">drag = orbit • wheel = zoom</div>
 
   <script type="module">
-    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js";
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
-    scene.fog = new THREE.Fog(0x000000, 12, 30);
+    scene.fog = new THREE.Fog(0x000000, 10, 30);
 
     const camera = new THREE.PerspectiveCamera(
-      45,
+      42,
       window.innerWidth / window.innerHeight,
       0.1,
       100
     );
-    camera.position.set(0, 1.2, 10);
+    camera.position.set(0, 1.3, 10.5);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: "high-performance"
+    });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.body.appendChild(renderer.domElement);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 1.0);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.enablePan = false;
+    controls.minDistance = 6;
+    controls.maxDistance = 16;
+    controls.target.set(0, 0.4, 0);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.75);
     scene.add(ambient);
 
-    const dir1 = new THREE.DirectionalLight(0xffd4a3, 2.5);
-    dir1.position.set(-4, 5, 6);
+    const dir1 = new THREE.DirectionalLight(0xffc58a, 2.2);
+    dir1.position.set(-4, 5, 8);
     scene.add(dir1);
 
-    const dir2 = new THREE.DirectionalLight(0x88bbff, 1.3);
-    dir2.position.set(5, 2, -4);
+    const dir2 = new THREE.DirectionalLight(0x7db7ff, 1.1);
+    dir2.position.set(5, 2, -2);
     scene.add(dir2);
 
-    const point = new THREE.PointLight(0xff7a1a, 8, 20);
-    point.position.set(2, 1, 3);
+    const point = new THREE.PointLight(0xff7a1a, 7, 20, 2);
+    point.position.set(2.5, 0.8, 2.8);
     scene.add(point);
 
     const world = new THREE.Group();
     scene.add(world);
-
-    function makeCanvasTexture(drawFn, width = 1024, height = 640) {
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      drawFn(ctx, width, height);
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.colorSpace = THREE.SRGBColorSpace;
-      return texture;
-    }
 
     function roundedRect(ctx, x, y, w, h, r) {
       ctx.beginPath();
@@ -96,134 +112,177 @@
       ctx.closePath();
     }
 
-    function createCardTexture(kind = "dark") {
-      return makeCanvasTexture((ctx, w, h) => {
-        let grad = ctx.createLinearGradient(0, 0, w, h);
+    function makeCardTexture({
+      width = 1024,
+      height = 640,
+      title = "Heading",
+      subtitle = "This is your paragraph flow.",
+      kicker = "FONTS",
+      variant = "dark"
+    } = {}) {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
 
-        if (kind === "blue") {
-          grad.addColorStop(0, "#11314a");
-          grad.addColorStop(0.5, "#2b7fc0");
-          grad.addColorStop(1, "#11181f");
-        } else if (kind === "cream") {
-          grad.addColorStop(0, "#f2eadf");
-          grad.addColorStop(1, "#ddd4c9");
-        } else {
-          grad.addColorStop(0, "#111111");
-          grad.addColorStop(1, "#050505");
-        }
+      const grad = ctx.createLinearGradient(0, 0, width, height);
+      if (variant === "blue") {
+        grad.addColorStop(0, "#13314f");
+        grad.addColorStop(0.4, "#2a7bc2");
+        grad.addColorStop(1, "#11161e");
+      } else if (variant === "cream") {
+        grad.addColorStop(0, "#f0eadf");
+        grad.addColorStop(1, "#dfd7cb");
+      } else {
+        grad.addColorStop(0, "#101112");
+        grad.addColorStop(1, "#050505");
+      }
 
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
 
-        ctx.strokeStyle = "rgba(255,255,255,0.18)";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(2, 2, w - 4, h - 4);
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(2, 2, width - 4, height - 4);
 
-        if (kind === "blue") {
-          ctx.fillStyle = "rgba(255,255,255,0.95)";
-          ctx.font = "900 110px Arial";
-          ctx.fillText("ANY", 70, 150);
-          ctx.fillText("DAY", 70, 260);
+      if (variant === "blue") {
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.font = "900 110px Arial";
+        ctx.fillText("ANY", 70, 150);
+        ctx.fillText("DAY", 70, 260);
 
-          const g = ctx.createLinearGradient(0, 0, 0, h);
-          g.addColorStop(0, "#f5d28d");
-          g.addColorStop(1, "#d57525");
-          ctx.fillStyle = g;
-          ctx.fillRect(520, 110, 160, 250);
-        }
+        const g = ctx.createLinearGradient(0, 0, 0, height);
+        g.addColorStop(0, "#f7d28b");
+        g.addColorStop(1, "#d67923");
+        ctx.fillStyle = g;
+        ctx.fillRect(500, 110, 170, 250);
 
-        if (kind === "cream") {
-          ctx.fillStyle = "#38291d";
-          ctx.font = "italic 86px Georgia";
-          ctx.fillText("Faun", 90, 180);
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        roundedRect(ctx, 720, 45, 230, 72, 22);
+        ctx.fill();
+        ctx.fillStyle = "#203245";
+        ctx.font = "700 24px Arial";
+        ctx.fillText("NEW LAYOUT", 775, 89);
+      }
 
-          ctx.strokeStyle = "rgba(50,35,20,0.45)";
-          ctx.lineWidth = 8;
-          ctx.beginPath();
-          ctx.moveTo(720, 60);
-          ctx.quadraticCurveTo(620, 200, 530, 350);
-          ctx.stroke();
-        }
+      if (variant === "cream") {
+        ctx.fillStyle = "#2f241a";
+        ctx.font = "italic 78px Georgia";
+        ctx.fillText("Faun", 84, 185);
 
-        if (kind === "dark") {
-          ctx.fillStyle = "rgba(255,255,255,0.82)";
-          ctx.font = "28px Arial";
-          ctx.fillText("FONTS", 44, 70);
+        ctx.strokeStyle = "rgba(43,28,18,0.50)";
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(700, 55);
+        ctx.quadraticCurveTo(615, 200, 520, 350);
+        ctx.quadraticCurveTo(605, 305, 695, 285);
+        ctx.quadraticCurveTo(790, 255, 870, 98);
+        ctx.stroke();
+      }
 
-          ctx.fillStyle = "rgba(255,255,255,0.96)";
-          ctx.font = "96px Georgia";
-          ctx.fillText("Heading", 40, 210);
+      if (variant === "dark") {
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
+        ctx.font = "28px Arial";
+        ctx.fillText(kicker, 44, 70);
 
-          ctx.fillStyle = "rgba(255,255,255,0.72)";
-          ctx.font = "34px Arial";
-          ctx.fillText("This is your paragraph flow.", 42, 300);
-        }
-      });
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.font = "96px Georgia";
+        ctx.fillText(title, 40, 210);
+
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
+        ctx.font = "34px Arial";
+        ctx.fillText(subtitle, 42, 300);
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
     }
 
-    function createLabelTexture(text) {
-      return makeCanvasTexture((ctx, w, h) => {
-        ctx.clearRect(0, 0, w, h);
-        roundedRect(ctx, 30, 25, w - 60, h - 50, 55);
-        ctx.fillStyle = "rgba(30,30,32,0.90)";
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.08)";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+    function makeLabelTexture(text) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 160;
+      const ctx = canvas.getContext("2d");
 
-        ctx.fillStyle = "rgba(255,255,255,0.88)";
-        ctx.font = "bold 54px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(text, w / 2, h / 2);
-      }, 512, 160);
+      roundedRect(ctx, 10, 18, 492, 110, 44);
+      ctx.fillStyle = "rgba(30,30,32,0.88)";
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
+      ctx.font = "600 34px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, 256, 73);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
     }
 
     function createPlane(texture, w, h, glass = false) {
-      const geometry = new THREE.PlaneGeometry(w, h);
-      const material = new THREE.MeshPhysicalMaterial({
+      const geo = new THREE.PlaneGeometry(w, h);
+      const mat = new THREE.MeshPhysicalMaterial({
         map: texture,
         transparent: true,
+        opacity: 0.98,
+        transmission: glass ? 0.28 : 0.03,
         roughness: glass ? 0.18 : 0.42,
         metalness: 0.05,
-        transmission: glass ? 0.28 : 0.02,
-        clearcoat: 0.5,
-        clearcoatRoughness: 0.2,
+        clearcoat: 0.6,
+        clearcoatRoughness: 0.18,
         side: THREE.DoubleSide
       });
-      return new THREE.Mesh(geometry, material);
+      return new THREE.Mesh(geo, mat);
     }
 
-    const blueCard = createPlane(createCardTexture("blue"), 3.4, 2.1, true);
-    blueCard.position.set(-2.7, 3.3, -1.2);
+    const rig = new THREE.Group();
+    world.add(rig);
+
+    const blueCard = createPlane(makeCardTexture({ variant: "blue" }), 3.45, 2.15, true);
+    blueCard.position.set(-2.65, 3.4, -1.4);
     blueCard.rotation.set(-0.08, 0.35, 0.03);
-    world.add(blueCard);
+    rig.add(blueCard);
 
-    const creamCard = createPlane(createCardTexture("cream"), 3.0, 1.7, true);
-    creamCard.position.set(0.7, 3.1, 0.7);
-    creamCard.rotation.set(0.10, -0.38, -0.02);
-    world.add(creamCard);
+    const creamCard = createPlane(makeCardTexture({ variant: "cream" }), 3.1, 1.7, true);
+    creamCard.position.set(0.55, 3.25, 0.6);
+    creamCard.rotation.set(0.1, -0.42, -0.02);
+    rig.add(creamCard);
 
-    const headingCard = createPlane(createCardTexture("dark"), 4.0, 2.0, false);
-    headingCard.position.set(-1.4, -1.0, 0.2);
-    headingCard.rotation.set(-0.08, 0.22, 0.01);
-    world.add(headingCard);
+    const headingCard = createPlane(
+      makeCardTexture({
+        variant: "dark",
+        title: "Heading",
+        subtitle: "This is your paragraph flow."
+      }),
+      4.1,
+      2.1,
+      false
+    );
+    headingCard.position.set(-1.4, -0.95, 0.25);
+    headingCard.rotation.set(-0.08, 0.24, 0.015);
+    rig.add(headingCard);
 
-    const label1 = createPlane(createLabelTexture("Professional"), 1.55, 0.48, false);
+    const label1 = createPlane(makeLabelTexture("Professional"), 1.55, 0.48, false);
     label1.position.set(0.2, 0.4, 1.2);
     label1.rotation.set(-0.08, 0.28, 0.05);
-    world.add(label1);
+    rig.add(label1);
 
-    const label2 = createPlane(createLabelTexture("Ethereal"), 1.35, 0.46, false);
-    label2.position.set(1.15, 0.95, 1.45);
+    const label2 = createPlane(makeLabelTexture("Ethereal"), 1.35, 0.46, false);
+    label2.position.set(1.1, 0.95, 1.45);
     label2.rotation.set(0.03, -0.18, -0.06);
-    world.add(label2);
+    rig.add(label2);
 
-    const orbMaterial = new THREE.ShaderMaterial({
+    const sphereGeo = new THREE.SphereGeometry(1.12, 64, 64);
+    const sphereMat = new THREE.ShaderMaterial({
       uniforms: {
         colorA: { value: new THREE.Color("#f0d596") },
-        colorB: { value: new THREE.Color("#dea66d") },
-        colorC: { value: new THREE.Color("#b8dfe2") }
+        colorB: { value: new THREE.Color("#e4b07a") },
+        colorC: { value: new THREE.Color("#b5d9df") }
       },
       vertexShader: `
         varying vec3 vNormal;
@@ -238,82 +297,85 @@
         uniform vec3 colorC;
         varying vec3 vNormal;
         void main() {
-          float top = smoothstep(-0.4, 0.9, vNormal.y);
-          float side = smoothstep(-0.3, 0.9, vNormal.x);
+          vec3 n = normalize(vNormal);
+          float top = smoothstep(-0.3, 0.8, n.y);
+          float right = smoothstep(-0.4, 0.9, n.x);
           vec3 col = mix(colorB, colorA, top);
-          col = mix(col, colorC, side * 0.6);
+          col = mix(col, colorC, right * 0.7);
           gl_FragColor = vec4(col, 1.0);
         }
       `
     });
 
-    const orb = new THREE.Mesh(
-      new THREE.SphereGeometry(1.1, 64, 64),
-      orbMaterial
-    );
+    const orb = new THREE.Mesh(sphereGeo, sphereMat);
     orb.position.set(-2.65, 0.05, 1.35);
-    world.add(orb);
+    rig.add(orb);
 
     const box = new THREE.Mesh(
       new THREE.BoxGeometry(1.45, 1.45, 1.45),
       new THREE.MeshPhysicalMaterial({
-        color: 0x7a2d08,
-        emissive: 0x351200,
-        emissiveIntensity: 0.65,
+        color: 0x7f2f09,
+        emissive: 0x3a1300,
+        emissiveIntensity: 0.55,
         roughness: 0.35,
-        metalness: 0.03
+        metalness: 0.05
       })
     );
     box.position.set(1.95, -0.78, 1.15);
     box.rotation.set(0.2, -0.58, 0.08);
-    world.add(box);
+    rig.add(box);
 
     const innerBox = new THREE.Mesh(
       new THREE.BoxGeometry(1.0, 1.0, 1.0),
       new THREE.MeshBasicMaterial({
         color: 0xff8b2f,
         transparent: true,
-        opacity: 0.92
+        opacity: 0.9
       })
     );
     innerBox.position.set(0.08, 0.02, 0.04);
     box.add(innerBox);
 
-    const starsGeometry = new THREE.BufferGeometry();
-    const starCount = 600;
-    const positions = new Float32Array(starCount * 3);
+    const stars = new THREE.BufferGeometry();
+    const starCount = 650;
+    const starPos = new Float32Array(starCount * 3);
 
     for (let i = 0; i < starCount; i++) {
-      const r = 18 + Math.random() * 18;
+      const r = 18 + Math.random() * 16;
       const a = Math.random() * Math.PI * 2;
       const y = (Math.random() - 0.5) * 12;
-      positions[i * 3] = Math.cos(a) * r;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = Math.sin(a) * r;
+      starPos[i * 3] = Math.cos(a) * r;
+      starPos[i * 3 + 1] = y;
+      starPos[i * 3 + 2] = Math.sin(a) * r;
     }
 
-    starsGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-
-    const stars = new THREE.Points(
-      starsGeometry,
+    stars.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
+    const starField = new THREE.Points(
+      stars,
       new THREE.PointsMaterial({
         color: 0xffffff,
         size: 0.03,
         transparent: true,
-        opacity: 0.6
+        opacity: 0.65,
+        depthWrite: false
       })
     );
-    scene.add(stars);
+    scene.add(starField);
 
-    const items = [
-      { obj: blueCard, baseY: blueCard.position.y, speed: 0.75, amp: 0.16 },
-      { obj: creamCard, baseY: creamCard.position.y, speed: 0.65, amp: 0.12 },
-      { obj: headingCard, baseY: headingCard.position.y, speed: 0.90, amp: 0.09 },
-      { obj: label1, baseY: label1.position.y, speed: 1.10, amp: 0.06 },
-      { obj: label2, baseY: label2.position.y, speed: 1.30, amp: 0.05 },
-      { obj: orb, baseY: orb.position.y, speed: 0.80, amp: 0.13 },
-      { obj: box, baseY: box.position.y, speed: 0.70, amp: 0.08 }
+    const floatingItems = [
+      { obj: blueCard, speed: 0.75, amp: 0.16, rx: 0.02, ry: 0.03 },
+      { obj: creamCard, speed: 0.65, amp: 0.12, rx: 0.03, ry: 0.018 },
+      { obj: headingCard, speed: 0.9, amp: 0.09, rx: 0.025, ry: 0.025 },
+      { obj: label1, speed: 1.1, amp: 0.06, rx: 0.01, ry: 0.06 },
+      { obj: label2, speed: 1.3, amp: 0.05, rx: 0.02, ry: 0.05 },
+      { obj: orb, speed: 0.8, amp: 0.13, rx: 0.015, ry: 0.02 },
+      { obj: box, speed: 0.7, amp: 0.08, rx: 0.06, ry: 0.08 }
     ];
+
+    const baseStates = floatingItems.map(item => ({
+      pos: item.obj.position.clone(),
+      rot: item.obj.rotation.clone()
+    }));
 
     const clock = new THREE.Clock();
 
@@ -323,10 +385,16 @@
       const t = clock.getElapsedTime();
 
       world.rotation.y = Math.sin(t * 0.22) * 0.16;
-      world.rotation.x = Math.cos(t * 0.17) * 0.03;
+      world.rotation.x = Math.cos(t * 0.17) * 0.035;
 
-      items.forEach((item, i) => {
-        item.obj.position.y = item.baseY + Math.sin(t * item.speed + i) * item.amp;
+      starField.rotation.y = t * 0.01;
+
+      floatingItems.forEach((item, i) => {
+        const base = baseStates[i];
+        item.obj.position.y = base.pos.y + Math.sin(t * item.speed + i * 0.9) * item.amp;
+        item.obj.position.x = base.pos.x + Math.cos(t * item.speed * 0.65 + i) * item.amp * 0.22;
+        item.obj.rotation.x = base.rot.x + Math.sin(t * item.speed * 0.55 + i) * item.rx;
+        item.obj.rotation.y = base.rot.y + Math.cos(t * item.speed * 0.5 + i) * item.ry;
       });
 
       orb.rotation.y += 0.0035;
@@ -335,12 +403,10 @@
       innerBox.rotation.y -= 0.01;
       innerBox.rotation.x += 0.008;
 
-      stars.rotation.y = t * 0.01;
-
       camera.position.x = Math.sin(t * 0.16) * 0.8;
-      camera.position.y = 1.2 + Math.cos(t * 0.21) * 0.18;
-      camera.lookAt(0, 0.4, 0);
+      camera.position.y = 1.25 + Math.cos(t * 0.21) * 0.18;
 
+      controls.update();
       renderer.render(scene, camera);
     }
 
